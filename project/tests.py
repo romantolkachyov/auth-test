@@ -22,6 +22,7 @@ class AppTestCase(unittest.TestCase):
     def test_simple(self):
         res = self.client.get('/auth/signup/')
         self.assertEqual(res.status_code, 405)
+
         res = self.client.get('/auth/signin/')
         self.assertEqual(res.status_code, 405)
 
