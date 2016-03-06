@@ -12,6 +12,8 @@ class SimpleAuthBackend(BaseAuthBackend):
         user_id = self.storage.get_user(email)
         if user_id is None:
             user_id = self.storage.create_user(email)
+        else:
+            raise AuthException("User already exists")
         self.storage.create_connection(user_id, 'simple', password)
         return ""
 
