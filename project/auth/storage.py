@@ -61,6 +61,7 @@ class SQLAlchemyStorage(BaseStorage):
             data=json.dumps(data)
         )
         self.db_session.add(obj)
+        self.db_session.commit()
 
     def get_user(self, email):
         obj = self._query().filter_by(email=email).first()

@@ -34,6 +34,7 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         self.app = Flask('test_app')
         self.app.config.from_object('project.settings.tests')
+        self.app.config['AUTH_STORAGE'] = SQLAlchemyStorage(db.session, User, UserConnection)
 
         db.init_app(self.app)
         self.app.register_blueprint(blueprint, url_prefix="")
@@ -161,6 +162,24 @@ class FacebookBackendTestCase(BaseTestCase):
                 backend.signin(data)
                 self.assertEqual(e.message, error_msg)
 
+
+class SimpleBackendTestCase(BaseTestCase):
+    def setUp(self):
+        super(SimpleBackendTestCase, self).setUp()
+        self.storage = SQLAlchemyStorage(db.session, User, UserConnection)
+        self.backend = SimpleAuthBackend(self.storage)
+
+    def test_simple(self):
+        data = dict(email='some@mail.com', password='123', type='simple')
+        response = self.client.post('/signup/', data=data)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post('/signin/', data=data)
+        self.assertEqual(response.status_code, 200)
+
+        data['email'] = 'notexist@mail.com'
+        response = self.client.post('/signin/', data=data)
+        self.assertEqual(response.status_code, 400)
 
 if __name__ == '__main__':
     unittest.main()
