@@ -55,7 +55,7 @@ class SQLAlchemyStorage(BaseStorage):
 
     def create_connection(self, user_id, backend_name, external_id, data={}):
         obj = self.connection_model(
-            user=user_id,
+            user_id=user_id,
             backend=backend_name,
             external_id=external_id,
             data=json.dumps(data)
@@ -69,7 +69,8 @@ class SQLAlchemyStorage(BaseStorage):
         return None
 
     def get_by_external_id(self, external_id):
-        obj = self._query().filter_by(external_id=external_id).first()
+        field = self.connection_model.external_id
+        obj = self._query().filter(field == external_id).first()
         if obj is not None:
             return obj.id
 

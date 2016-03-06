@@ -29,6 +29,13 @@ class FacebookException(AuthException):
         return self.message
 
 
+class AccountNotFoundException(AuthException):
+
+    """Account not found exception."""
+
+    message = "User with this account not found"
+
+
 class FacebookAuthBackend(BaseAuthBackend):
 
     """Facebook authentication backend.
@@ -67,11 +74,24 @@ class FacebookAuthBackend(BaseAuthBackend):
 
     def signin(self, data):
         """Signin using facebook."""
+        app_id = current_app.config.get('FACEBOOK_APP_ID')
+
         facebook_token = data.get('facebook_token')
+
         result = self._access_token_request(facebook_token)
         if 'error' in result:
             raise FacebookException(result)
-        return result['access_token']
+        access_token = result['access_token']
+
+        remote_user_id, remote_app_id = self.check_token(access_token)
+        if remote_app_id != app_id:
+            raise InvalidTokenException('wrong token app id')
+
+        user = self.storage.get_by_external_id(remote_user_id)
+        if user is None:
+            raise AccountNotFoundException
+
+        return access_token
 
     def check_token(self, user_token):
         app_token = current_app.config.get('FACEBOOK_APP_TOKEN')

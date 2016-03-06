@@ -23,7 +23,8 @@ class User(db.Model):
 
 class UserConnection(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.ForeignKey(User.id))
+    user_id = db.Column(db.ForeignKey(User.id))
+    user = db.relationship(User)
     backend = db.Column(db.String, index=True)
     external_id = db.Column(db.String, index=True)
     data = db.Column(db.Text)
@@ -114,27 +115,52 @@ class FacebookBackendTestCase(BaseTestCase):
 
         self.assertEqual(self._count_user(test_email), 1)
 
+    def _create_user_and_connection(self, external_id='123'):
+        with self.app.test_request_context('/'):
+            user = User(email='somemail@gmail.com')
+            db.session.add(user)
+            connection = UserConnection(
+                user=user,
+                backend='facebook',
+                external_id=external_id
+            )
+            db.session.add(connection)
+            db.session.commit()
+
     def test_signin(self):
-        backend = self.backend
+        test_external_id = '123'
+        test_token = 'ABC123'
         access_token = 'CBA321'
+
+        self._create_user_and_connection(external_id=test_external_id)
+        backend = self.backend
+
+        # check positive response
         response = dict(access_token=access_token)
         backend._access_token_request = MagicMock(return_value=response)
 
-        test_token = 'ABC123'
+        app_id = self.app.config.get('FACEBOOK_APP_ID')
+        response = dict(data=dict(user_id=test_external_id, app_id=app_id))
+        backend._debug_token_request = MagicMock(return_value=response)
+
         data = dict(
             facebook_token=test_token,
         )
+
         with self.app.test_request_context('/signin/'):
             self.assertEqual(backend.signin(data), access_token)
 
+        # check negative response
         error_msg = 'Some error happen'
         error_response = dict(error=dict(message=error_msg))
         backend._access_token_request = MagicMock(return_value=error_response)
+        backend._debug_token_request = MagicMock(return_value=error_response)
 
         with self.app.test_request_context('/signin/'):
             with self.assertRaises(AuthException) as e:
                 backend.signin(data)
                 self.assertEqual(e.message, error_msg)
+
 
 if __name__ == '__main__':
     unittest.main()
