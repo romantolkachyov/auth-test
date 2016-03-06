@@ -40,6 +40,8 @@ class FacebookAuthBackend(BaseAuthBackend):
         * FACEBOOK_REDIRECT_URI
     """
 
+    api_url = 'https://graph.facebook.com/'
+
     def signup(self, data):
         """Signup using facebook."""
         email = data.get('email')
@@ -47,22 +49,14 @@ class FacebookAuthBackend(BaseAuthBackend):
         user_token = data.get('facebook_token')
 
         # TODO: check configuration
-        app_token = current_app.config.get('FACEBOOK_APP_TOKEN')
         facebook_app_id = current_app.config.get('FACEBOOK_APP_ID')
 
-        result = self._debug_token_request(app_token, user_token)
-
-        # error check
-        if 'error' in result:
-            raise AuthException(result)
+        remote_user_id, remote_app_id = self.check_token(user_token)
 
         # user id check
-        remote_user_id = result['data']['user_id']
         if user_id != remote_user_id:
             raise InvalidTokenException
-
         # app id check
-        remote_app_id = result['data']['app_id']
         if facebook_app_id != remote_app_id:
             raise InvalidTokenException
 
@@ -79,12 +73,22 @@ class FacebookAuthBackend(BaseAuthBackend):
             raise FacebookException(result)
         return result['access_token']
 
+    def check_token(self, user_token):
+        app_token = current_app.config.get('FACEBOOK_APP_TOKEN')
+
+        result = self._debug_token_request(app_token, user_token)
+        if 'error' in result:
+            raise AuthException(result)
+        return result['data']['user_id'], result['data']['app_id']
+
     def _access_token_request(self, facebook_token):
         """Make request to `access_token` endpoint."""
         config = current_app.config
+
         redirect_uri = config.get('FACEBOOK_REDIRECT_URI')
         facebook_app_token = config.get('FACEBOOK_APP_TOKEN')
         facebook_app_id = config.get('FACEBOOK_APP_ID')
+
         data = dict(
             client_id=facebook_app_id,
             redirect_uri=redirect_uri,
@@ -100,5 +104,5 @@ class FacebookAuthBackend(BaseAuthBackend):
 
     def _request(self, uri, data):
         """Make request to `graph.facebook.com` and return json."""
-        url = urlparse.urljoin('https://graph.facebook.com/', uri)
+        url = urlparse.urljoin(self.api_url, uri)
         return requests.get(url, params=data).json()

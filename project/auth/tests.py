@@ -116,8 +116,8 @@ class FacebookBackendTestCase(BaseTestCase):
 
     def test_signin(self):
         backend = self.backend
-
-        response = dict(access_token='CBA321')
+        access_token = 'CBA321'
+        response = dict(access_token=access_token)
         backend._access_token_request = MagicMock(return_value=response)
 
         test_token = 'ABC123'
@@ -125,7 +125,7 @@ class FacebookBackendTestCase(BaseTestCase):
             facebook_token=test_token,
         )
         with self.app.test_request_context('/signin/'):
-            self.assertTrue(backend.signin(data))
+            self.assertEqual(backend.signin(data), access_token)
 
         error_msg = 'Some error happen'
         error_response = dict(error=dict(message=error_msg))

@@ -21,6 +21,10 @@ class BaseStorage(object):
         """
         raise NotImplemented
 
+    def get_by_external_id(self, external_id):
+        """Return user by external_id."""
+        raise NotImplemented
+
     def is_user_exists(self, email):
         """Check user existance by email."""
         raise NotImplemented
@@ -64,7 +68,7 @@ class SQLAlchemyStorage(BaseStorage):
             return obj.id
         return None
 
-    def by_external_id(self, external_id):
+    def get_by_external_id(self, external_id):
         obj = self._query().filter_by(external_id=external_id).first()
         if obj is not None:
             return obj.id
