@@ -6,7 +6,17 @@ Install
 
     pip install -r requirements.txt
 
+You need to add copy default config and change facebook related settings
+(token and app_id):
+
+    cp project/settings/local{_template,}.py
+
 Run
 ===
 
     python app.py
+
+Tests
+=====
+
+    nosetests
